@@ -19,7 +19,7 @@
 # 访问 https://ollama.ai 下载对应系统版本
 
 # 拉取Qwen2.5-VL模型
-ollama pull qwen2-vl:7b
+ollama pull qwen2.5vl:72b
 ```
 
 ### 3. 数据库配置
@@ -148,7 +148,7 @@ REDIS_URL=redis://localhost:6379/0
 
 # Ollama配置
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2-vl:7b
+OLLAMA_MODEL=qwen2.5vl:72b
 
 # 文件存储配置
 UPLOAD_DIR=./uploads
@@ -175,7 +175,7 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/1
 ollama list
 
 # 重新拉取模型
-ollama pull qwen2-vl:7b
+ollama pull qwen2.5vl:72b
 ```
 
 ### 2. 数据库连接失败
@@ -243,15 +243,16 @@ picture-comparison/
 
 *安装完成后，您就可以开始使用PDF图纸尺寸分析系统了！*
 
-前端
-
-cd backend
-python main.py
 
 Celery工作进程
 
 cd backend
 celery -A app.tasks.celery_app worker --loglevel=info
+
+前端
+
+cd backend
+python main.py
 
 前端服务
 

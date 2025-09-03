@@ -118,7 +118,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # 拉取 Qwen2.5-VL 模型
-ollama pull qwen2-vl:7b
+ollama pull qwen2.5vl:72b
 ```
 
 ### 3. 后端设置
@@ -210,7 +210,7 @@ REDIS_URL=redis://localhost:6379/0
 
 # Ollama 配置
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2-vl:7b
+OLLAMA_MODEL=qwen2.5vl:72b
 
 # 文件存储
 UPLOAD_DIR=./uploads

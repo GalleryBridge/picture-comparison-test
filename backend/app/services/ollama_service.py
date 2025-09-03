@@ -23,6 +23,15 @@ class OllamaService:
         """
         try:
             async with httpx.AsyncClient(timeout=30) as client:
+                # 使用 POST 方法检查模型是否可用
+                response = await client.post(
+                    f"{self.base_url}/api/show",
+                    json={"name": self.model}
+                )
+                if response.status_code == 200:
+                    return True
+                
+                # 如果 show 失败，回退到 tags 方法
                 response = await client.get(f"{self.base_url}/api/tags")
                 if response.status_code == 200:
                     models = response.json().get("models", [])

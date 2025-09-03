@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # Ollama配置
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "qwen2-vl:7b"
+    OLLAMA_MODEL: str = "qwen2.5vl:72b"
     
     # 文件存储配置
     UPLOAD_DIR: str = "./uploads"
