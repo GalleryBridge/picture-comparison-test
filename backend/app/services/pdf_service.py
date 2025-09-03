@@ -3,7 +3,6 @@ PDF处理服务
 """
 
 import fitz  # PyMuPDF
-from pdf2image import convert_from_path
 from PIL import Image
 import os
 from typing import Dict, List, Any
@@ -40,9 +39,11 @@ class PDFService:
     
     def convert_pdf_to_images(self, pdf_path: str, output_dir: str) -> List[str]:
         """
-        将PDF页面转换为图像
+        使用PyMuPDF将PDF页面转换为图像
         """
         try:
+            import fitz  # PyMuPDF
+            
             # 确保输出目录存在
             os.makedirs(output_dir, exist_ok=True)
             
@@ -50,21 +51,20 @@ class PDFService:
             pdf_info = self.get_pdf_info(pdf_path)
             page_count = min(pdf_info["page_count"], self.max_pages)
             
-            # 转换PDF页面为图像
-            images = convert_from_path(
-                pdf_path,
-                dpi=self.dpi,
-                first_page=1,
-                last_page=page_count,
-                fmt='PNG'
-            )
-            
             image_paths = []
-            for i, image in enumerate(images, 1):
-                image_path = os.path.join(output_dir, f"page_{i}.png")
-                image.save(image_path, 'PNG')
+            doc = fitz.open(pdf_path)
+            
+            for page_num in range(page_count):
+                page = doc[page_num]
+                # 渲染页面为图像
+                mat = fitz.Matrix(self.dpi/72, self.dpi/72)  # DPI转换
+                pix = page.get_pixmap(matrix=mat)
+                
+                image_path = os.path.join(output_dir, f"page_{page_num + 1}.png")
+                pix.save(image_path)
                 image_paths.append(image_path)
             
+            doc.close()
             return image_paths
             
         except Exception as e:

@@ -67,17 +67,19 @@ async def upload_pdf(
         # db.add(pdf_record)
         # db.commit()
         
-        # 启动异步处理任务
-        task = process_pdf_task.delay(file_id, file_path)
+        # 直接同步处理PDF文件
+        print(f"🚀 开始处理PDF文件...")
+        result = process_pdf_task(file_id, file_path)
+        print(f"✅ PDF处理完成")
         
         return {
             "file_id": file_id,
             "filename": file.filename,
             "file_size": file.size,
             "page_count": pdf_info["page_count"],
-            "task_id": task.id,
-            "status": "processing",
-            "message": "PDF文件上传成功，开始处理"
+            "status": "completed",
+            "message": "PDF文件上传并处理完成",
+            "result": result
         }
         
     except Exception as e:

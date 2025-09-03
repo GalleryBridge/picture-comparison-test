@@ -5,9 +5,9 @@ export interface UploadResponse {
   filename: string
   file_size: number
   page_count: number
-  task_id: string
   status: string
   message: string
+  result?: any
 }
 
 export interface UploadStatusResponse {

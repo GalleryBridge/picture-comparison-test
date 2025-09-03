@@ -1,28 +1,21 @@
 """
-PDF处理相关的Celery任务
+PDF处理相关的函数
 """
 
-from celery import current_task
-from app.tasks.celery_app import celery_app
 from app.services.pdf_service import PDFService
 from app.services.ollama_service import OllamaService
 from app.core.config import settings
 import os
-import asyncio
 from typing import Dict, Any
 
 
-@celery_app.task(bind=True)
-def process_pdf_task(self, file_id: str, pdf_path: str) -> Dict[str, Any]:
+def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
     """
     处理PDF文件的主任务
     """
     try:
-        # 更新任务状态
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 0, 'total': 100, 'message': '开始处理PDF文件...'}
-        )
+        print(f"🚀 开始处理PDF文件: {pdf_path}")
+        print(f"📄 文件ID: {file_id}")
         
         # 创建服务实例
         pdf_service = PDFService()
@@ -30,50 +23,135 @@ def process_pdf_task(self, file_id: str, pdf_path: str) -> Dict[str, Any]:
         # 获取PDF信息
         pdf_info = pdf_service.get_pdf_info(pdf_path)
         page_count = pdf_info["page_count"]
+        print(f"📊 PDF包含 {page_count} 页")
         
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 10, 'total': 100, 'message': f'PDF包含 {page_count} 页，开始转换图像...'}
-        )
+
         
         # 创建输出目录
         output_dir = os.path.join(settings.UPLOAD_DIR, "images", file_id)
         os.makedirs(output_dir, exist_ok=True)
         
         # 转换PDF为图像
+        print(f"🔄 开始转换PDF为图像...")
         image_paths = pdf_service.convert_pdf_to_images(pdf_path, output_dir)
+        print(f"✅ 图像转换完成，生成 {len(image_paths)} 张图像")
         
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 40, 'total': 100, 'message': f'图像转换完成，开始AI分析...'}
-        )
+
         
-        # 启动AI分析任务
-        from app.tasks.ai_tasks import analyze_images_task
-        ai_task = analyze_images_task.delay(file_id, image_paths)
+        # 直接调用AI分析，不使用Celery
+        print(f"🚀 开始直接调用AI分析...")
         
-        # 等待AI分析完成
-        ai_result = ai_task.get(timeout=600)  # 10分钟超时
-        
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 90, 'total': 100, 'message': '分析完成，保存结果...'}
-        )
-        
-        # TODO: 保存结果到数据库
-        
-        result = {
-            "file_id": file_id,
-            "pdf_info": pdf_info,
-            "image_paths": image_paths,
-            "ai_analysis": ai_result,
-            "status": "completed"
-        }
-        
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 100, 'total': 100, 'message': '处理完成！'}
-        )
+        try:
+            # 创建Ollama服务实例
+            ollama_service = OllamaService()
+            
+            # 检查模型可用性
+            print(f"🔍 检查Ollama模型: {ollama_service.model}")
+            import httpx
+            with httpx.Client(timeout=30) as client:
+                response = client.post(
+                    f"{ollama_service.base_url}/api/show",
+                    json={"name": ollama_service.model}
+                )
+                if response.status_code != 200:
+                    raise Exception(f"Ollama模型不可用: {response.status_code}")
+                print(f"✅ 模型 {ollama_service.model} 可用")
+            
+            # 开始分析图像
+            print(f"🚀 开始分析 {len(image_paths)} 张图像...")
+            results = []
+            
+            for i, image_path in enumerate(image_paths):
+                print(f"📄 分析第 {i+1}/{len(image_paths)} 页: {image_path}")
+                
+                # 编码图像
+                image_base64 = ollama_service.encode_image_to_base64(image_path)
+                print(f"📸 图像编码完成，大小: {len(image_base64)} 字符")
+                
+                # 构建请求数据
+                request_data = {
+                    "model": ollama_service.model,
+                    "prompt": ollama_service._get_default_prompt(),
+                    "images": [image_base64],
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.1,
+                        "top_p": 0.9,
+                        "top_k": 40
+                    }
+                }
+                
+                print(f"🤖 发送请求到Ollama: {ollama_service.base_url}")
+                
+                # 发送请求到Ollama
+                with httpx.Client(timeout=ollama_service.timeout) as client:
+                    response = client.post(
+                        f"{ollama_service.base_url}/api/generate",
+                        json=request_data,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code != 200:
+                        raise Exception(f"Ollama API请求失败: {response.status_code}")
+                    
+                    result = response.json()
+                    print(f"✅ 第 {i+1} 页分析成功，响应长度: {len(result.get('response', ''))}")
+                    
+                    # 解析尺寸信息
+                    dimensions = ollama_service.parse_dimensions_from_response(
+                        result.get("response", "")
+                    )
+                    
+                    results.append({
+                        "success": True,
+                        "response": result.get("response", ""),
+                        "model": result.get("model", ""),
+                        "parsed_dimensions": dimensions,
+                        "page_number": i + 1,
+                        "image_path": image_path
+                    })
+            
+            # 整理最终结果
+            total_dimensions = sum(len(r.get("parsed_dimensions", [])) for r in results)
+            print(f"✅ AI分析完成，共找到 {total_dimensions} 个尺寸")
+            
+            print(f"🎉 AI分析完成！")
+            
+
+            
+            # 返回完整结果
+            result = {
+                "file_id": file_id,
+                "pdf_info": pdf_info,
+                "image_paths": image_paths,
+                "ai_analysis": {
+                    "total_pages": len(image_paths),
+                    "total_dimensions": total_dimensions,
+                    "page_results": results,
+                    "summary": {
+                        "pages_analyzed": len(image_paths),
+                        "successful_pages": sum(1 for r in results if r.get("success")),
+                        "total_dimensions_found": total_dimensions
+                    }
+                },
+                "status": "completed",
+                "message": "PDF处理和AI分析全部完成"
+            }
+            
+        except Exception as e:
+            print(f"❌ AI分析失败: {e}")
+            # 如果AI分析失败，返回部分结果
+            result = {
+                "file_id": file_id,
+                "pdf_info": pdf_info,
+                "image_paths": image_paths,
+                "ai_analysis": {
+                    "error": str(e),
+                    "status": "failed"
+                },
+                "status": "ai_analysis_failed",
+                "message": f"PDF处理完成，但AI分析失败: {str(e)}"
+            }
         
         return result
         
@@ -85,63 +163,8 @@ def process_pdf_task(self, file_id: str, pdf_path: str) -> Dict[str, Any]:
         except:
             pass
         
-        self.update_state(
-            state='FAILURE',
-            meta={'error': str(e), 'message': f'处理失败: {str(e)}'}
-        )
+        print(f"❌ PDF处理失败: {e}")
         raise
 
 
-@celery_app.task(bind=True)
-def convert_pdf_pages_task(self, pdf_path: str, output_dir: str) -> Dict[str, Any]:
-    """
-    转换PDF页面为图像的任务
-    """
-    try:
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 0, 'total': 100, 'message': '开始转换PDF页面...'}
-        )
-        
-        pdf_service = PDFService()
-        image_paths = pdf_service.convert_pdf_to_images(pdf_path, output_dir)
-        
-        self.update_state(
-            state='PROGRESS',
-            meta={'current': 100, 'total': 100, 'message': '页面转换完成'}
-        )
-        
-        return {
-            "image_paths": image_paths,
-            "page_count": len(image_paths),
-            "status": "completed"
-        }
-        
-    except Exception as e:
-        self.update_state(
-            state='FAILURE',
-            meta={'error': str(e), 'message': f'转换失败: {str(e)}'}
-        )
-        raise
 
-
-@celery_app.task(bind=True)
-def cleanup_files_task(self, file_paths: list) -> Dict[str, Any]:
-    """
-    清理临时文件的任务
-    """
-    try:
-        pdf_service = PDFService()
-        pdf_service.cleanup_temp_files(file_paths)
-        
-        return {
-            "cleaned_files": len(file_paths),
-            "status": "completed"
-        }
-        
-    except Exception as e:
-        self.update_state(
-            state='FAILURE',
-            meta={'error': str(e)}
-        )
-        raise

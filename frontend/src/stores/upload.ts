@@ -1,13 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UploadFile, TaskProgress } from '@/types'
-import { uploadPDF, getUploadStatus } from '@/api/upload'
-import { getTaskStatus } from '@/api/tasks'
+import type { UploadFile } from '@/types'
+import { uploadPDF } from '@/api/upload'
 
 export const useUploadStore = defineStore('upload', () => {
   // 状态
   const files = ref<UploadFile[]>([])
-  const currentTaskId = ref<string>('')
   const isUploading = ref(false)
 
   // 计算属性
@@ -60,15 +58,11 @@ export const useUploadStore = defineStore('upload', () => {
       isUploading.value = true
       updateFileStatus(uploadFile.id, 'uploading', 10)
 
-      // 上传文件
+      // 上传文件并直接处理
       const response = await uploadPDF(file)
       
-      updateFileStatus(uploadFile.id, 'processing', 50)
-      uploadFile.taskId = response.task_id
-      currentTaskId.value = response.task_id
-
-      // 开始轮询任务状态
-      await pollTaskStatus(uploadFile.id, response.task_id)
+      // 直接标记为完成，因为现在是同步处理
+      updateFileStatus(uploadFile.id, 'completed', 100)
       
       return response.file_id
       
@@ -80,42 +74,7 @@ export const useUploadStore = defineStore('upload', () => {
     }
   }
 
-  const pollTaskStatus = async (fileId: string, taskId: string) => {
-    const maxAttempts = 120 // 最多轮询2分钟
-    let attempts = 0
 
-    const poll = async (): Promise<void> => {
-      try {
-        const status = await getTaskStatus(taskId)
-        
-        if (status.state === 'PROGRESS') {
-          const progress = status.current && status.total 
-            ? Math.round((status.current / status.total) * 100)
-            : 50
-          updateFileProgress(fileId, Math.max(50, progress))
-        } else if (status.state === 'SUCCESS') {
-          updateFileStatus(fileId, 'completed', 100)
-          return
-        } else if (status.state === 'FAILURE') {
-          updateFileStatus(fileId, 'failed', 0)
-          throw new Error(status.error || '处理失败')
-        }
-
-        attempts++
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 1000) // 1秒后再次轮询
-        } else {
-          updateFileStatus(fileId, 'failed', 0)
-          throw new Error('处理超时')
-        }
-      } catch (error) {
-        updateFileStatus(fileId, 'failed', 0)
-        throw error
-      }
-    }
-
-    await poll()
-  }
 
   const removeFile = (fileId: string) => {
     const index = files.value.findIndex(f => f.id === fileId)
@@ -126,7 +85,6 @@ export const useUploadStore = defineStore('upload', () => {
 
   const clearFiles = () => {
     files.value = []
-    currentTaskId.value = ''
   }
 
   const retryUpload = async (fileId: string, originalFile: File) => {
@@ -137,7 +95,6 @@ export const useUploadStore = defineStore('upload', () => {
   return {
     // 状态
     files,
-    currentTaskId,
     isUploading,
     
     // 计算属性
@@ -151,7 +108,6 @@ export const useUploadStore = defineStore('upload', () => {
     uploadFile,
     removeFile,
     clearFiles,
-    retryUpload,
-    pollTaskStatus
+    retryUpload
   }
 })

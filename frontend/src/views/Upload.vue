@@ -132,13 +132,6 @@
             :show-text="false"
           />
         </div>
-
-        <div v-if="currentTaskStatus" class="task-status">
-          <div class="status-message">
-            <el-icon><Loading /></el-icon>
-            {{ currentTaskStatus.message }}
-          </div>
-        </div>
       </el-card>
     </div>
 
@@ -178,7 +171,7 @@
             <el-icon class="help-icon"><Clock /></el-icon>
             <div>
               <h4>处理时间</h4>
-              <p>根据PDF页数和复杂度，通常需要1-10分钟</p>
+              <p>根据PDF页数和复杂度，通常需要1-5分钟</p>
             </div>
           </div>
         </div>
@@ -201,8 +194,7 @@ import {
   Clock 
 } from '@element-plus/icons-vue'
 import { useUploadStore } from '@/stores/upload'
-import { getTaskStatus } from '@/api/tasks'
-import type { UploadFile, TaskStatusResponse } from '@/types'
+import type { UploadFile } from '@/types'
 
 const router = useRouter()
 const uploadStore = useUploadStore()
@@ -210,8 +202,6 @@ const uploadStore = useUploadStore()
 // 响应式数据
 const fileInput = ref<HTMLInputElement>()
 const isDragover = ref(false)
-const currentTaskStatus = ref<TaskStatusResponse | null>(null)
-const statusPollingTimer = ref<number>()
 
 // 文件拖拽处理
 const handleDragover = (e: DragEvent) => {
@@ -325,40 +315,15 @@ const viewResult = (file: UploadFile) => {
   router.push(`/results/${file.id}`)
 }
 
-// 状态轮询
-const startStatusPolling = () => {
-  if (uploadStore.currentTaskId) {
-    statusPollingTimer.value = window.setInterval(async () => {
-      try {
-        const status = await getTaskStatus(uploadStore.currentTaskId)
-        currentTaskStatus.value = status
-        
-        if (status.state === 'SUCCESS' || status.state === 'FAILURE') {
-          stopStatusPolling()
-        }
-      } catch (error) {
-        console.error('获取任务状态失败:', error)
-      }
-    }, 2000)
-  }
-}
-
-const stopStatusPolling = () => {
-  if (statusPollingTimer.value) {
-    clearInterval(statusPollingTimer.value)
-    statusPollingTimer.value = undefined
-  }
-}
+// 不再需要状态轮询，因为现在是同步处理
 
 // 生命周期
 onMounted(() => {
-  if (uploadStore.hasActiveUploads) {
-    startStatusPolling()
-  }
+  // 不需要轮询
 })
 
 onUnmounted(() => {
-  stopStatusPolling()
+  // 不需要清理
 })
 </script>
 

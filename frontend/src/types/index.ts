@@ -27,18 +27,7 @@ export interface UploadFile {
   type: string
   status: 'ready' | 'uploading' | 'processing' | 'completed' | 'failed'
   progress: number
-  taskId?: string
 }
-
-// 任务状态
-export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-
-export interface TaskProgress {
-  current: number
-  total: number
-  message: string
-}
-
 // 尺寸信息
 export interface DimensionInfo {
   value: string
@@ -70,5 +59,5 @@ export interface AnalysisResultInfo {
   pages: PDFPageInfo[]
   createdAt: string
   processingTime: number
-  status: TaskStatus
+  status: string
 }

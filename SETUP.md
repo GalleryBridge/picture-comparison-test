@@ -247,12 +247,13 @@ picture-comparison/
 Celery工作进程
 
 cd backend
-celery -A app.tasks.celery_app worker --loglevel=info
+celery -A app.tasks.celery_app worker --loglevel=debug
 
 前端
 
 cd backend
 python main.py
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 前端服务
 
