@@ -15,7 +15,7 @@ class OllamaService:
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
         self.model = settings.OLLAMA_MODEL
-        self.timeout = 300  # 5分钟超时
+        self.timeout = 600  # 10分钟超时
     
     async def check_model_availability(self) -> bool:
         """

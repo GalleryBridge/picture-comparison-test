@@ -242,3 +242,18 @@ picture-comparison/
 ---
 
 *安装完成后，您就可以开始使用PDF图纸尺寸分析系统了！*
+
+前端
+
+cd backend
+python main.py
+
+Celery工作进程
+
+cd backend
+celery -A app.tasks.celery_app worker --loglevel=info
+
+前端服务
+
+cd frontend
+npm run dev
