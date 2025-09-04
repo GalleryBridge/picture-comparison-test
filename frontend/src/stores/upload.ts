@@ -61,7 +61,13 @@ export const useUploadStore = defineStore('upload', () => {
       // 上传文件并直接处理
       const response = await uploadPDF(file)
       
-      // 直接标记为完成，因为现在是同步处理
+      // 上传成功，文件开始处理
+      updateFileStatus(uploadFile.id, 'processing', 50)
+      
+      // 模拟等待一小段时间让用户看到50%进度
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 处理完成
       updateFileStatus(uploadFile.id, 'completed', 100)
       
       return response.file_id
