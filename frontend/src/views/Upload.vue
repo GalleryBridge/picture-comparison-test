@@ -171,7 +171,7 @@
             <el-icon class="help-icon"><Clock /></el-icon>
             <div>
               <h4>处理时间</h4>
-              <p>根据PDF页数和复杂度，通常需要1-5分钟</p>
+              <p>根据PDF页数和复杂度，通常需要1-10分钟</p>
             </div>
           </div>
         </div>
@@ -187,7 +187,6 @@ import { ElMessage } from 'element-plus'
 import { 
   UploadFilled, 
   Document, 
-  Loading, 
   InfoFilled, 
   WarnTriangleFilled, 
   CircleCheckFilled, 

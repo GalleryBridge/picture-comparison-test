@@ -6,6 +6,7 @@ from app.services.pdf_service import PDFService
 from app.services.ollama_service import OllamaService
 from app.core.config import settings
 import os
+import json
 from typing import Dict, Any
 
 
@@ -48,7 +49,7 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
             # 检查模型可用性
             print(f"🔍 检查Ollama模型: {ollama_service.model}")
             import httpx
-            with httpx.Client(timeout=30) as client:
+            with httpx.Client(timeout=60) as client:
                 response = client.post(
                     f"{ollama_service.base_url}/api/show",
                     json={"name": ollama_service.model}
@@ -138,6 +139,13 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                 "message": "PDF处理和AI分析全部完成"
             }
             
+            # 输出完整的JSON结果到控制台
+            print("=" * 80)
+            print("📊 完整分析结果JSON:")
+            print("=" * 80)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print("=" * 80)
+            
         except Exception as e:
             print(f"❌ AI分析失败: {e}")
             # 如果AI分析失败，返回部分结果
@@ -152,6 +160,13 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                 "status": "ai_analysis_failed",
                 "message": f"PDF处理完成，但AI分析失败: {str(e)}"
             }
+            
+            # 即使失败也输出JSON结果
+            print("=" * 80)
+            print("📊 分析结果JSON (部分失败):")
+            print("=" * 80)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print("=" * 80)
         
         return result
         
