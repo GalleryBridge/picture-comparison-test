@@ -65,9 +65,14 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
             for i, image_path in enumerate(image_paths):
                 print(f"📄 分析第 {i+1}/{len(image_paths)} 页: {image_path}")
                 
-                # 编码图像
-                image_base64 = ollama_service.encode_image_to_base64(image_path)
-                print(f"📸 图像编码完成，大小: {len(image_base64)} 字符")
+                # 图像增强处理
+                print(f"🖼️ 开始图像增强处理...")
+                enhanced_image_path = pdf_service.enhance_for_engineering_drawing(image_path)
+                print(f"✅ 图像增强完成: {enhanced_image_path}")
+                
+                # 编码增强后的图像
+                image_base64 = ollama_service.encode_image_to_base64(enhanced_image_path)
+                print(f"📸 增强图像编码完成，大小: {len(image_base64)} 字符")
                 
                 # 构建请求数据
                 request_data = {

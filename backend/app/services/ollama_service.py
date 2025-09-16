@@ -108,127 +108,86 @@ class OllamaService:
     
     def _get_default_prompt(self) -> str:
         """
-        获取默认的尺寸识别提示词
+        获取优化的尺寸识别提示词 - 确保JSON输出一致性
         """
-        return """
-你是一个专业的工程图纸分析专家。请仔细、系统地分析这张工程图纸图像，识别并提取**所有**的尺寸标注信息。
+        return """你是专业的工程图纸分析专家。请识别图像中的所有尺寸标注信息。
 
-【分析要求】
-请按以下步骤进行全面扫描：
-1. **整体扫描**：从左到右、从上到下系统地扫描整个图像
-2. **细节检查**：仔细查看每个角落、边缘和内部区域
-3. **多次核查**：确保没有遗漏任何尺寸标注
+重要：请严格按照以下JSON格式输出，不要包含任何其他文字或解释！
 
-【需要识别的尺寸类型】
-- **线性尺寸**：长度、宽度、高度、直径、半径等
-- **角度尺寸**：各种角度标注（°）
-- **螺纹尺寸**：螺纹规格和螺距
-- **孔径尺寸**：各种孔的直径和深度
-- **倒角尺寸**：倒角和圆角尺寸
-- **位置尺寸**：定位尺寸和坐标尺寸
-- **其他标注**：包括任何带有数字和单位的标注
-
-【识别特征】
-寻找以下特征的数字：
-- 带有尺寸线和箭头的数字
-- 标有单位符号的数字（mm、cm、inch、°等）
-- 带有公差的数字（±、+/-、上下偏差）
-- 尺寸框内的数字
-- 标注线引出的数字
-
-请按照以下JSON格式返回结果：
-{
-    "dimensions": [
-        {
-            "value": "纯数字值（不含单位）",
-            "unit": "单位(mm/cm/inch/°等)",
-            "tolerance": "公差标注(如±0.1、+0.2/-0.1，无则为null)",
-            "dimension_type": "尺寸类型(linear/angular/diameter/radius/thread/hole/chamfer/position)",
-            "prefix": "前缀符号(如Φ、R、M等，无则为null)", 
-            "position": {"x": x坐标像素值, "y": y坐标像素值},
-            "confidence": 置信度(0.0-1.0),
-            "description": "尺寸描述(如'主视图长度'、'孔径'等)"
-        }
-    ],
-    "summary": {
-        "total_dimensions": 识别到的总尺寸数量,
-        "dimension_types": ["识别到的尺寸类型列表"],
-        "units_found": ["发现的所有单位"],
-        "has_tolerances": 是否包含公差信息,
-        "scan_coverage": "扫描覆盖度评估(如'完整'、'部分')"
-    },
-    "analysis_notes": "分析说明和可能遗漏的区域"
-}
-
-【重要要求】
-1. **全面性**：不要遗漏任何可能的尺寸，宁可多识别也不要少识别
-2. **准确性**：确保每个尺寸值和位置都准确
-3. **完整性**：包含所有相关信息（单位、公差、前缀等）
-4. **系统性**：按照逻辑顺序进行扫描和识别
-5. **置信度**：诚实评估每个识别结果的可信度
-
-【输出示例】
 ```json
 {
     "dimensions": [
         {
-            "value": "100",
-            "unit": "mm", 
-            "tolerance": "±0.1",
-            "dimension_type": "linear",
-            "prefix": null,
-            "position": {"x": 150, "y": 200},
-            "confidence": 0.95,
-            "description": "主视图长度尺寸"
-        },
-        {
-            "value": "25",
-            "unit": "mm",
-            "tolerance": null,
-            "dimension_type": "diameter", 
-            "prefix": "Φ",
-            "position": {"x": 300, "y": 180},
-            "confidence": 0.90,
-            "description": "圆孔直径"
-        },
-        {
-            "value": "45",
-            "unit": "°",
-            "tolerance": null,
-            "dimension_type": "angular",
-            "prefix": null, 
-            "position": {"x": 250, "y": 120},
-            "confidence": 0.85,
-            "description": "倒角角度"
+            "value": "数字值",
+            "unit": "单位",
+            "tolerance": "公差或null",
+            "dimension_type": "类型",
+            "prefix": "前缀或null",
+            "position": {"x": 0, "y": 0},
+            "confidence": 0.9,
+            "description": "描述"
         }
     ],
     "summary": {
-        "total_dimensions": 3,
-        "dimension_types": ["linear", "diameter", "angular"],
-        "units_found": ["mm", "°"],
-        "has_tolerances": true,
+        "total_dimensions": 0,
+        "dimension_types": [],
+        "units_found": [],
+        "has_tolerances": false,
         "scan_coverage": "完整"
     },
-    "analysis_notes": "图纸清晰，所有尺寸标注均已识别"
+    "analysis_notes": "分析说明"
 }
 ```
 
-【特别注意】
-- **小尺寸标注**：注意角落和细节处的小尺寸
-- **重叠区域**：仔细辨认重叠或密集标注区域的每个尺寸
-- **低对比度**：识别淡色、灰色或低对比度的标注
-- **各种字体**：包括手写、印刷、不同大小的字体
-- **边界尺寸**：图像边缘的尺寸标注
-- **内部尺寸**：零件内部的孔径、槽宽等尺寸
-- **宁多勿少**：如果不确定某数字是否为尺寸，优先包含
+识别要求：
+1. 扫描整个图像，从左到右、从上到下
+2. 识别所有数字+单位的组合（mm、cm、°、inch等）
+3. 注意公差标注（±符号）
+4. 识别前缀符号（Φ、R、C、M等）
+5. 包括线性、角度、直径、半径、倒角等所有类型
+6. 不要遗漏角落、边缘、重叠区域的小尺寸
+7. 对不确定的标注也要包含，标注低置信度
 
-【扫描策略】
-1. 先进行整体快速扫描，识别主要尺寸
-2. 然后分区域仔细检查，确保不遗漏
-3. 最后进行验证，核实每个尺寸的准确性
+dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer, position, roughness
 
-请严格按照JSON格式输出，确保语法正确，并尽最大努力识别**所有**尺寸标注！
-"""
+请只输出JSON，不要其他内容！"""
+    
+    def _get_enhanced_prompt(self) -> str:
+        """
+        获取增强版提示词 - 用于复杂图纸的二次分析
+        """
+        return """你是工程图纸分析专家。这是一张复杂的工程图纸，请进行深度分析。
+
+请特别注意以下区域的尺寸标注：
+- 图像边缘和角落的小标注
+- 线条交叉处的隐藏尺寸  
+- 淡色或低对比度的标注
+- 重叠或密集标注区域
+- 内部细节和特殊符号
+
+输出格式（只输出JSON）：
+```json
+{
+    "dimensions": [
+        {
+            "value": "数字",
+            "unit": "单位",
+            "tolerance": "公差",
+            "dimension_type": "类型",
+            "prefix": "前缀",
+            "position": {"x": 0, "y": 0},
+            "confidence": 0.8,
+            "description": "详细描述"
+        }
+    ],
+    "summary": {
+        "total_dimensions": 0,
+        "scan_coverage": "深度扫描"
+    }
+}
+```
+
+要求：宁可多识别也不要遗漏，包含所有可能的尺寸标注！"""
     
     async def batch_analyze_images(self, image_paths: List[str], prompt: str = None) -> List[Dict[str, Any]]:
         """
@@ -253,34 +212,167 @@ class OllamaService:
     
     def parse_dimensions_from_response(self, response_text: str) -> List[Dict[str, Any]]:
         """
-        从AI响应中解析尺寸信息
+        从AI响应中解析尺寸信息 - 增强版
         """
         try:
-            # 尝试解析JSON响应
-            if response_text.strip().startswith('{'):
-                data = json.loads(response_text)
-                return data.get("dimensions", [])
-            
-            # 如果不是JSON格式，尝试使用正则表达式提取
             import re
-            dimensions = []
+            all_dimensions = []
             
-            # 匹配常见的尺寸格式：数字+单位+可选公差
-            pattern = r'(\d+\.?\d*)\s*(mm|cm|inch|in|″|′)\s*([±]\s*\d+\.?\d*)?'
-            matches = re.findall(pattern, response_text, re.IGNORECASE)
+            print(f"🔍 开始解析AI响应，长度: {len(response_text)}")
             
-            for match in matches:
-                value, unit, tolerance = match
-                dimensions.append({
-                    "value": value,
-                    "unit": unit.lower(),
-                    "tolerance": tolerance.strip() if tolerance else None,
-                    "position": {"x": 0, "y": 0},  # 默认位置
-                    "confidence": 0.7  # 默认置信度
-                })
+            # 方法1: 提取markdown格式的JSON代码块
+            json_blocks = re.findall(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL | re.IGNORECASE)
+            print(f"📄 找到 {len(json_blocks)} 个JSON代码块")
             
-            return dimensions
+            for i, block in enumerate(json_blocks):
+                try:
+                    print(f"🔄 解析第 {i+1} 个JSON代码块...")
+                    data = json.loads(block)
+                    dimensions = data.get("dimensions", [])
+                    print(f"✅ 成功解析出 {len(dimensions)} 个尺寸")
+                    all_dimensions.extend(dimensions)
+                except json.JSONDecodeError as e:
+                    print(f"❌ JSON解析失败: {str(e)}")
+                    continue
+            
+            # 方法2: 尝试直接解析纯JSON（去除markdown标记）
+            if not all_dimensions:
+                print("🔄 尝试直接JSON解析...")
+                # 清理响应文本
+                cleaned_text = response_text.strip()
+                # 移除可能的markdown标记
+                cleaned_text = re.sub(r'^```json\s*', '', cleaned_text, flags=re.MULTILINE)
+                cleaned_text = re.sub(r'\s*```$', '', cleaned_text, flags=re.MULTILINE)
+                
+                if cleaned_text.startswith('{'):
+                    try:
+                        data = json.loads(cleaned_text)
+                        dimensions = data.get("dimensions", [])
+                        print(f"✅ 直接JSON解析成功，找到 {len(dimensions)} 个尺寸")
+                        all_dimensions.extend(dimensions)
+                    except json.JSONDecodeError as e:
+                        print(f"❌ 直接JSON解析失败: {str(e)}")
+            
+            # 方法3: 增强的正则表达式回退解析
+            if not all_dimensions:
+                print("🔄 使用增强正则表达式解析...")
+                all_dimensions = self._extract_dimensions_with_enhanced_regex(response_text)
+                print(f"📊 正则表达式解析找到 {len(all_dimensions)} 个尺寸")
+            
+            print(f"🎉 总共解析出 {len(all_dimensions)} 个尺寸标注")
+            return all_dimensions
             
         except Exception as e:
-            print(f"解析尺寸信息失败: {str(e)}")
+            print(f"❌ 解析尺寸信息失败: {str(e)}")
             return []
+    
+    def _extract_dimensions_with_enhanced_regex(self, text: str) -> List[Dict[str, Any]]:
+        """
+        增强的正则表达式尺寸提取
+        """
+        import re
+        dimensions = []
+        
+        # 多种尺寸格式的正则表达式
+        patterns = [
+            # 基本格式: 数字 + 单位 + 可选公差
+            (r'(\d+\.?\d*)\s*(mm|cm|inch|in|″|′|°|um)\s*([±]\s*\d+\.?\d*)?', 'basic'),
+            
+            # 直径格式: Φ + 数字 + 单位
+            (r'[ΦΦφ]\s*(\d+\.?\d*)\s*(mm|cm|inch|in)?', 'diameter'),
+            
+            # 半径格式: R + 数字 + 单位  
+            (r'R\s*(\d+\.?\d*)\s*(mm|cm|inch|in)?', 'radius'),
+            
+            # 倒角格式: C + 数字 + 单位
+            (r'C\s*(\d+\.?\d*)\s*(mm|cm|inch|in)?', 'chamfer'),
+            
+            # 公差格式: 数字 ± 数字 单位
+            (r'(\d+\.?\d*)\s*[±]\s*(\d+\.?\d*)\s*(mm|cm|inch|in|°)', 'tolerance'),
+            
+            # MAX/MIN格式: 数字 MAX/MIN
+            (r'(\d+\.?\d*)\s*(MAX|MIN|max|min)', 'limit'),
+            
+            # 表面粗糙度: Ra + 数字 + 单位
+            (r'Ra\s*(\d+\.?\d*)\s*(um|μm|mm)?', 'roughness'),
+        ]
+        
+        for pattern, dim_type in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            
+            for match in matches:
+                if dim_type == 'basic':
+                    value, unit, tolerance = match
+                    dimensions.append({
+                        "value": value,
+                        "unit": unit.lower() if unit else "mm",
+                        "tolerance": tolerance.strip() if tolerance else None,
+                        "dimension_type": "linear",
+                        "prefix": None,
+                        "position": {"x": 0, "y": 0},
+                        "confidence": 0.7,
+                        "description": f"正则提取-{dim_type}"
+                    })
+                    
+                elif dim_type == 'diameter':
+                    value, unit = match
+                    dimensions.append({
+                        "value": value,
+                        "unit": unit.lower() if unit else "mm",
+                        "tolerance": None,
+                        "dimension_type": "diameter", 
+                        "prefix": "Φ",
+                        "position": {"x": 0, "y": 0},
+                        "confidence": 0.8,
+                        "description": f"正则提取-直径"
+                    })
+                    
+                elif dim_type == 'radius':
+                    value, unit = match
+                    dimensions.append({
+                        "value": value,
+                        "unit": unit.lower() if unit else "mm",
+                        "tolerance": None,
+                        "dimension_type": "radius",
+                        "prefix": "R", 
+                        "position": {"x": 0, "y": 0},
+                        "confidence": 0.8,
+                        "description": f"正则提取-半径"
+                    })
+                    
+                elif dim_type == 'tolerance':
+                    value, tolerance_val, unit = match
+                    dimensions.append({
+                        "value": value,
+                        "unit": unit.lower(),
+                        "tolerance": f"±{tolerance_val}",
+                        "dimension_type": "linear",
+                        "prefix": None,
+                        "position": {"x": 0, "y": 0},
+                        "confidence": 0.9,
+                        "description": f"正则提取-公差"
+                    })
+                    
+                elif dim_type == 'limit':
+                    value, limit_type = match
+                    dimensions.append({
+                        "value": value,
+                        "unit": "mm",
+                        "tolerance": limit_type.upper(),
+                        "dimension_type": "linear",
+                        "prefix": None,
+                        "position": {"x": 0, "y": 0},
+                        "confidence": 0.8,
+                        "description": f"正则提取-{limit_type.lower()}值"
+                    })
+        
+        # 去重处理
+        unique_dimensions = []
+        seen = set()
+        for dim in dimensions:
+            key = f"{dim['value']}-{dim['unit']}-{dim.get('tolerance', '')}"
+            if key not in seen:
+                seen.add(key)
+                unique_dimensions.append(dim)
+        
+        return unique_dimensions
