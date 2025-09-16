@@ -24,6 +24,8 @@ wheels/
 venv/
 env/
 ENV/
+pdf_analysis_env/
+.conda/
 
 # Environment Variables
 .env
