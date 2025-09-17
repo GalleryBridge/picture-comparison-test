@@ -21,10 +21,10 @@ from enum import Enum
 from pathlib import Path
 import time
 
-from ..geometry.elements import Element, Point, Line, Circle, Arc, Text
-from ..matching.diff_detector import DifferenceDetail, DifferenceType, DifferenceStatistics
-from ..comparison_engine import ComparisonResult
-from .diff_renderer import DiffRenderer, RenderConfig, RenderFormat
+from geometry.elements import Element, Point, Line, Circle, Arc, Text
+from matching.diff_detector import DifferenceDetail, DifferenceType, DifferenceStatistics
+from core.comparison_engine import ComparisonResult
+from visualization.diff_renderer import DiffRenderer, RenderConfig, RenderFormat
 
 
 class ReportFormat(Enum):

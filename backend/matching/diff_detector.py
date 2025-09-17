@@ -10,9 +10,9 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 
-from ..geometry.elements import Element, Point, Line, Circle, Arc, Text
-from .element_matcher import ElementMatcher, MatchResult, MatchingStatistics
-from .tolerance import ToleranceConfig
+from geometry.elements import Element, Point, Line, Circle, Arc, Text
+from matching.element_matcher import ElementMatcher, MatchResult, MatchingStatistics
+from matching.tolerance import ToleranceConfig
 
 
 class DifferenceType(Enum):

@@ -10,9 +10,9 @@ import math
 import numpy as np
 from dataclasses import dataclass
 
-from ..geometry.elements import Element, Point, Line, Circle, Arc, Text
-from ..geometry.spatial_index import SpatialIndex
-from .tolerance import ToleranceConfig
+from geometry.elements import Element, Point, Line, Circle, Arc, Text
+from geometry.spatial_index import SpatialIndex
+from matching.tolerance import ToleranceConfig
 
 
 @dataclass

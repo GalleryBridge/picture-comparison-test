@@ -9,7 +9,7 @@ import fitz  # PyMuPDF
 import pdfplumber
 import math
 from typing import List, Dict, Any, Optional, Tuple
-from ..geometry.elements import Line, Circle, Arc, Text, Point, Element
+from geometry.elements import Line, Circle, Arc, Text, Point, Element
 
 
 class PDFParser:

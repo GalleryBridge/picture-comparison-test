@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from ..geometry.elements import Element, Point, Line, Circle, Arc, Text
-from ..matching.diff_detector import DifferenceDetail, DifferenceType
-from ..comparison_engine import ComparisonResult
+from geometry.elements import Element, Point, Line, Circle, Arc, Text
+from matching.diff_detector import DifferenceDetail, DifferenceType
+from core.comparison_engine import ComparisonResult
 
 
 class HighlightStyle(Enum):

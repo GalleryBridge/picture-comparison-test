@@ -10,6 +10,6 @@ PDF图纸比对模块
 __version__ = "1.0.0"
 __author__ = "PDF Comparison Team"
 
-from .comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonMode, OutputFormat, ComparisonResult
+from .core.comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonMode, OutputFormat, ComparisonResult
 
 __all__ = ["PDFComparisonEngine", "ComparisonConfig", "ComparisonMode", "OutputFormat", "ComparisonResult"]

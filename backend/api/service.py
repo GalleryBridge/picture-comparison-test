@@ -15,10 +15,10 @@ from pathlib import Path
 import json
 import shutil
 
-from ..comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonResult
-from ..visualization.pdf_highlighter import PDFHighlighter, HighlightConfig
-from ..visualization.diff_renderer import DiffRenderer, RenderConfig
-from ..visualization.report_generator import ReportGenerator, ReportConfig
+from core.comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonResult
+from visualization.pdf_highlighter import PDFHighlighter, HighlightConfig
+from visualization.diff_renderer import DiffRenderer, RenderConfig
+from visualization.report_generator import ReportGenerator, ReportConfig
 from .models import (
     ComparisonRequest, ComparisonResponse, ComparisonStatus,
     HighlightRequest, HighlightResponse, RenderRequest, RenderResponse,
@@ -122,7 +122,7 @@ class ComparisonService:
     
     def _get_tolerance_config(self, preset: str, custom: Optional[Dict[str, float]] = None):
         """获取容差配置"""
-        from ..matching.tolerance import ToleranceManager
+        from matching.tolerance import ToleranceManager
         
         if custom:
             return ToleranceManager.create_custom_config(custom)

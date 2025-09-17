@@ -16,9 +16,9 @@ from enum import Enum
 import os
 from pathlib import Path
 
-from ..geometry.elements import Element, Point, Line, Circle as GeoCircle, Arc, Text
-from ..matching.diff_detector import DifferenceDetail, DifferenceType, DifferenceStatistics
-from ..comparison_engine import ComparisonResult
+from geometry.elements import Element, Point, Line, Circle as GeoCircle, Arc, Text
+from matching.diff_detector import DifferenceDetail, DifferenceType, DifferenceStatistics
+from core.comparison_engine import ComparisonResult
 
 
 class RenderFormat(Enum):

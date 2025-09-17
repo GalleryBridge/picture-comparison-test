@@ -11,8 +11,8 @@ from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 
-from ..geometry.elements import Element, Point, Line, Circle, Arc, Text
-from .tolerance import ToleranceConfig
+from geometry.elements import Element, Point, Line, Circle, Arc, Text
+from matching.tolerance import ToleranceConfig
 
 
 class SimilarityMethod(Enum):

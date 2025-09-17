@@ -13,13 +13,17 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from enum import Enum
 
-from .parser.pdf_parser import PDFParser
-from .geometry.normalizer import CoordinateNormalizer
-from .geometry.elements import Element
-from .matching.tolerance import ToleranceConfig, ToleranceManager
-from .matching.element_matcher import ElementMatcher, MatchResult, MatchingStatistics
-from .matching.similarity_calculator import SimilarityCalculator, SimilarityMethod
-from .matching.diff_detector import DiffDetector, DifferenceDetail, DifferenceStatistics, DifferenceType
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from parser.pdf_parser import PDFParser
+from geometry.normalizer import CoordinateNormalizer
+from geometry.elements import Element
+from matching.tolerance import ToleranceConfig, ToleranceManager
+from matching.element_matcher import ElementMatcher, MatchResult, MatchingStatistics
+from matching.similarity_calculator import SimilarityCalculator, SimilarityMethod
+from matching.diff_detector import DiffDetector, DifferenceDetail, DifferenceStatistics, DifferenceType
 
 
 class ComparisonMode(Enum):

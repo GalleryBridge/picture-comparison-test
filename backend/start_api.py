@@ -9,7 +9,7 @@ import uvicorn
 from pathlib import Path
 
 # 添加项目路径
-sys.path.append('app')
+sys.path.append('.')
 
 def start_api_server():
     """启动API服务器"""
@@ -39,7 +39,7 @@ def start_api_server():
     # 启动服务器
     try:
         uvicorn.run(
-            "app.services.pdf_comparison.api.app:app",
+            "api.app:app",
             host="0.0.0.0",
             port=8000,
             reload=True,

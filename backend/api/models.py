@@ -9,11 +9,11 @@ from pydantic import BaseModel, Field, validator
 from enum import Enum
 from datetime import datetime
 
-from ..comparison_engine import ComparisonMode, OutputFormat
-from ..matching.similarity_calculator import SimilarityMethod
-from ..visualization.pdf_highlighter import HighlightStyle
-from ..visualization.diff_renderer import RenderFormat, ChartType
-from ..visualization.report_generator import ReportFormat, ReportLevel
+from core.comparison_engine import ComparisonMode, OutputFormat
+from matching.similarity_calculator import SimilarityMethod
+from visualization.pdf_highlighter import HighlightStyle
+from visualization.diff_renderer import RenderFormat, ChartType
+from visualization.report_generator import ReportFormat, ReportLevel
 
 
 class ComparisonStatus(str, Enum):
