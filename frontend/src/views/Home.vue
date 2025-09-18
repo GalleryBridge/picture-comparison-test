@@ -132,9 +132,12 @@
             <el-col :span="12">
               <el-form-item label="相似度方法">
                 <el-select v-model="comparisonOptions.similarity_method" placeholder="选择相似度方法">
-                  <el-option label="加权相似度" value="weighted_combined" />
+                  <el-option label="加权相似度" value="weighted" />
                   <el-option label="欧几里得距离" value="euclidean" />
                   <el-option label="余弦相似度" value="cosine" />
+                  <el-option label="曼哈顿距离" value="manhattan" />
+                  <el-option label="雅卡尔相似度" value="jaccard" />
+                  <el-option label="豪斯多夫距离" value="hausdorff" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -167,8 +170,7 @@
             :disabled="!canStartComparison"
             @click="startComparison"
           >
-            <el-icon><Search /></el-icon>
-            开始比对
+            <el-icon><Search /></el-icon>开始比对
           </el-button>
         </div>
       </el-card>
@@ -243,7 +245,7 @@ const uploadRefB = ref()
 const comparisonOptions = ref({
   mode: 'standard',
   tolerance_preset: 'standard',
-  similarity_method: 'weighted_combined',
+  similarity_method: 'weighted',
   output_formats: ['json'],
   include_visualization: true,
   include_report: false

@@ -8,12 +8,20 @@ from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field, validator
 from enum import Enum
 from datetime import datetime
+import json
 
 from core.comparison_engine import ComparisonMode, OutputFormat
 from matching.similarity_calculator import SimilarityMethod
 from visualization.pdf_highlighter import HighlightStyle
 from visualization.diff_renderer import RenderFormat, ChartType
 from visualization.report_generator import ReportFormat, ReportLevel
+
+# 自定义JSON编码器
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class ComparisonStatus(str, Enum):
@@ -54,7 +62,7 @@ class ComparisonResponse(BaseModel):
     """比对响应"""
     comparison_id: str = Field(..., description="比对ID")
     status: ComparisonStatus = Field(..., description="比对状态")
-    timestamp: datetime = Field(..., description="时间戳")
+    timestamp: str = Field(..., description="时间戳")
     processing_time: Optional[float] = Field(None, description="处理时间(秒)")
     
     # 比对结果
@@ -157,7 +165,7 @@ class ReportResponse(BaseModel):
 class HealthResponse(BaseModel):
     """健康检查响应"""
     status: str = Field(..., description="服务状态")
-    timestamp: datetime = Field(..., description="检查时间")
+    timestamp: str = Field(..., description="检查时间")
     version: str = Field(..., description="服务版本")
     uptime: float = Field(..., description="运行时间(秒)")
     memory_usage: Dict[str, Any] = Field(..., description="内存使用情况")
@@ -169,7 +177,7 @@ class ErrorResponse(BaseModel):
     error: str = Field(..., description="错误类型")
     message: str = Field(..., description="错误信息")
     details: Optional[Dict[str, Any]] = Field(None, description="错误详情")
-    timestamp: datetime = Field(default_factory=datetime.now, description="错误时间")
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="错误时间")
 
 
 class BatchComparisonRequest(BaseModel):

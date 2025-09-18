@@ -27,21 +27,66 @@ comparison_service = ComparisonService()
 
 
 @router.post("/compare", response_model=ComparisonResponse, status_code=http_status.HTTP_201_CREATED)
-async def compare_files(request: ComparisonRequest):
+async def compare_files(
+    file_a: UploadFile = File(..., description="文件A"),
+    file_b: UploadFile = File(..., description="文件B"),
+    mode: str = Form("standard", description="比对模式"),
+    similarity_method: str = Form("weighted_combined", description="相似度计算方法"),
+    tolerance_preset: str = Form("standard", description="容差预设"),
+    output_formats: str = Form("json", description="输出格式"),
+    include_visualization: bool = Form(True, description="是否包含可视化"),
+    include_report: bool = Form(False, description="是否包含报告")
+):
     """
     执行PDF文件比对
     
-    - **file_a_path**: 文件A路径
-    - **file_b_path**: 文件B路径
+    - **file_a**: 文件A
+    - **file_b**: 文件B
     - **mode**: 比对模式 (standard/quick/precise)
     - **similarity_method**: 相似度计算方法
     - **tolerance_preset**: 容差预设 (ultra_high/high/standard/loose)
-    - **custom_tolerance**: 自定义容差参数
-    - **output_formats**: 输出格式列表
+    - **output_formats**: 输出格式
     - **include_visualization**: 是否包含可视化
     - **include_report**: 是否包含报告
     """
     try:
+        # 保存上传的文件
+        upload_dir = comparison_service.output_dir / "uploads"
+        upload_dir.mkdir(exist_ok=True)
+        
+        import uuid
+        file_a_extension = os.path.splitext(file_a.filename)[1]
+        file_b_extension = os.path.splitext(file_b.filename)[1]
+        
+        file_a_id = f"{uuid.uuid4().hex[:8]}{file_a_extension}"
+        file_b_id = f"{uuid.uuid4().hex[:8]}{file_b_extension}"
+        
+        file_a_path = upload_dir / file_a_id
+        file_b_path = upload_dir / file_b_id
+        
+        # 保存文件A
+        with open(file_a_path, "wb") as buffer:
+            content = await file_a.read()
+            buffer.write(content)
+        
+        # 保存文件B
+        with open(file_b_path, "wb") as buffer:
+            content = await file_b.read()
+            buffer.write(content)
+        
+        # 创建比对请求
+        from .models import ComparisonRequest, OutputFormat
+        request = ComparisonRequest(
+            file_a_path=str(file_a_path),
+            file_b_path=str(file_b_path),
+            mode=mode,
+            similarity_method=similarity_method,
+            tolerance_preset=tolerance_preset,
+            output_formats=[OutputFormat.JSON] if output_formats == "json" else [OutputFormat.JSON],
+            include_visualization=include_visualization,
+            include_report=include_report
+        )
+        
         result = await comparison_service.compare_files(request)
         return result
     except Exception as e:

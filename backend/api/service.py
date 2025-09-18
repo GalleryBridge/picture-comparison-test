@@ -90,7 +90,10 @@ class ComparisonService:
             # 清理过期的比对结果
             expired_ids = []
             for comp_id, comp in self.comparisons.items():
-                if comp.timestamp.timestamp() < cutoff_time:
+                # 将ISO格式字符串转换为时间戳进行比较
+                from datetime import datetime
+                comp_time = datetime.fromisoformat(comp.timestamp).timestamp()
+                if comp_time < cutoff_time:
                     expired_ids.append(comp_id)
             
             for comp_id in expired_ids:
@@ -139,7 +142,7 @@ class ComparisonService:
             response = ComparisonResponse(
                 comparison_id=comparison_id,
                 status=ComparisonStatus.PROCESSING,
-                timestamp=datetime.now(),
+                timestamp=datetime.now().isoformat(),
                 success=False
             )
             
@@ -274,7 +277,7 @@ class ComparisonService:
                 error_response = ComparisonResponse(
                     comparison_id=f"error_{uuid.uuid4().hex[:8]}",
                     status=ComparisonStatus.FAILED,
-                    timestamp=datetime.now(),
+                    timestamp=datetime.now().isoformat(),
                     success=False,
                     error_message=str(result)
                 )
@@ -300,7 +303,9 @@ class ComparisonService:
     def list_comparisons(self, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         """列出比对结果"""
         all_comparisons = list(self.comparisons.values())
-        all_comparisons.sort(key=lambda x: x.timestamp, reverse=True)
+        # 按时间戳排序，将ISO格式字符串转换为datetime对象进行比较
+        from datetime import datetime
+        all_comparisons.sort(key=lambda x: datetime.fromisoformat(x.timestamp), reverse=True)
         
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
@@ -568,7 +573,7 @@ class ComparisonService:
         
         return HealthResponse(
             status="healthy",
-            timestamp=datetime.now(),
+            timestamp=datetime.now().isoformat(),
             version="1.0.0",
             uptime=uptime,
             memory_usage=memory_usage,
