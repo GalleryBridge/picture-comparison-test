@@ -26,6 +26,7 @@ env/
 ENV/
 pdf_analysis_env/
 .conda/
+outputs/
 
 # Environment Variables
 .env
