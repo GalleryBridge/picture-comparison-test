@@ -91,6 +91,42 @@ class ComparisonResult:
     def __post_init__(self):
         if self.warnings is None:
             self.warnings = []
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        def convert_enum(obj):
+            """转换枚举对象为字符串"""
+            if hasattr(obj, 'value'):
+                return obj.value
+            return obj
+        
+        def convert_dict(d):
+            """递归转换字典中的枚举"""
+            if isinstance(d, dict):
+                return {k: convert_dict(v) for k, v in d.items()}
+            elif isinstance(d, list):
+                return [convert_dict(item) for item in d]
+            else:
+                return convert_enum(d)
+        
+        result = {
+            'file_a_path': self.file_a_path,
+            'file_b_path': self.file_b_path,
+            'comparison_id': self.comparison_id,
+            'timestamp': self.timestamp,
+            'processing_time': self.processing_time,
+            'elements_a_count': self.elements_a_count,
+            'elements_b_count': self.elements_b_count,
+            'matching_statistics': asdict(self.matching_statistics) if self.matching_statistics else None,
+            'differences': [asdict(diff) for diff in self.differences] if self.differences else [],
+            'difference_statistics': asdict(self.difference_statistics) if self.difference_statistics else None,
+            'config': asdict(self.config) if self.config else None,
+            'success': self.success,
+            'error_message': self.error_message,
+            'warnings': self.warnings
+        }
+        
+        return convert_dict(result)
 
 
 class PDFComparisonEngine:

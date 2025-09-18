@@ -87,6 +87,7 @@ async def compare_files(
             include_report=include_report
         )
         
+        # 异步执行比对，避免阻塞
         result = await comparison_service.compare_files(request)
         return result
     except Exception as e:
@@ -356,7 +357,8 @@ async def get_comparison_status(comparison_id: str):
         "status": result.status,
         "success": result.success,
         "processing_time": result.processing_time,
-        "error_message": result.error_message
+        "error_message": result.error_message,
+        "progress": result.processing_time / 300.0 if result.processing_time else 0.0  # 进度百分比
     }
 
 

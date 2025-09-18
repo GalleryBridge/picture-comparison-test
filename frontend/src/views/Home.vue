@@ -172,6 +172,16 @@
           >
             <el-icon><Search /></el-icon>开始比对
           </el-button>
+          
+          <!-- 进度显示 -->
+          <div v-if="loading && currentComparison" class="progress-info">
+            <el-progress 
+              :percentage="Math.min(progressPercentage, 95)" 
+              :status="progressStatus"
+              :stroke-width="8"
+            />
+            <p class="progress-text">{{ progressText }}</p>
+          </div>
         </div>
       </el-card>
     </div>
@@ -255,9 +265,41 @@ const comparisonOptions = ref({
 const loading = computed(() => comparisonStore.loading)
 const hasComparisons = computed(() => comparisonStore.hasComparisons)
 const recentComparisons = computed(() => comparisonStore.comparisons.slice(0, 5))
+const currentComparison = computed(() => comparisonStore.currentComparison)
 
 const canStartComparison = computed(() => {
   return fileA.value && fileB.value && !loading.value
+})
+
+// 进度相关计算属性
+const progressPercentage = computed(() => {
+  if (!currentComparison.value || !currentComparison.value.processing_time) {
+    return 0
+  }
+  // 基于处理时间计算进度，假设最大处理时间为5分钟
+  const maxTime = 300 // 5分钟
+  const currentTime = currentComparison.value.processing_time || 0
+  return Math.min((currentTime / maxTime) * 100, 95)
+})
+
+const progressStatus = computed(() => {
+  if (!currentComparison.value) return 'normal'
+  switch (currentComparison.value.status) {
+    case 'processing': return 'normal'
+    case 'completed': return 'success'
+    case 'failed': return 'exception'
+    default: return 'normal'
+  }
+})
+
+const progressText = computed(() => {
+  if (!currentComparison.value) return ''
+  switch (currentComparison.value.status) {
+    case 'processing': return '正在比对中，请稍候...'
+    case 'completed': return '比对完成！'
+    case 'failed': return '比对失败'
+    default: return '准备中...'
+  }
 })
 
 // 方法
@@ -469,6 +511,20 @@ onMounted(async () => {
 .action-area {
   text-align: center;
   padding: 20px 0;
+}
+
+.progress-info {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.progress-text {
+  margin-top: 10px;
+  color: #606266;
+  font-size: 14px;
 }
 
 .recent-section {

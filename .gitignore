@@ -74,3 +74,4 @@ celerybeat.pid
 
 # Redis dump
 dump.rdb
+outputs

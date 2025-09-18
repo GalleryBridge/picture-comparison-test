@@ -3,7 +3,7 @@ import axios from 'axios'
 // 创建axios实例
 const api = axios.create({
   baseURL: '/api/v1/pdf-comparison',
-  timeout: 30000,
+  timeout: 300000, // 增加到5分钟
   headers: {
     'Content-Type': 'application/json'
   }
@@ -49,8 +49,14 @@ export const comparisonApi = {
     return await api.post('/compare', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 300000 // 5分钟超时
     })
+  },
+
+  // 获取比对状态
+  async getComparisonStatus(comparisonId) {
+    return await api.get(`/status/${comparisonId}`)
   },
 
   // 获取比对结果

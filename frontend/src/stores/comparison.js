@@ -61,6 +61,12 @@ export const useComparisonStore = defineStore('comparison', () => {
       const result = await comparisonApi.compareFiles(fileA, fileB, options)
       addComparison(result)
       setCurrentComparison(result)
+      
+      // 如果比对还在处理中，开始轮询状态
+      if (result.status === 'processing') {
+        pollComparisonStatus(result.comparison_id)
+      }
+      
       return result
     } catch (err) {
       setError(err.message || '比对失败')
@@ -68,6 +74,39 @@ export const useComparisonStore = defineStore('comparison', () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 轮询比对状态
+  const pollComparisonStatus = async (comparisonId) => {
+    const pollInterval = 2000 // 2秒轮询一次
+    const maxPolls = 150 // 最多轮询5分钟
+    
+    let pollCount = 0
+    const poll = async () => {
+      try {
+        const status = await comparisonApi.getComparisonStatus(comparisonId)
+        updateComparison(comparisonId, status)
+        
+        if (status.status === 'completed' || status.status === 'failed') {
+          setLoading(false)
+          return
+        }
+        
+        pollCount++
+        if (pollCount < maxPolls) {
+          setTimeout(poll, pollInterval)
+        } else {
+          setError('比对超时，请重试')
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('轮询状态失败:', err)
+        setError('获取比对状态失败')
+        setLoading(false)
+      }
+    }
+    
+    setTimeout(poll, pollInterval)
   }
 
   const getComparison = async (comparisonId) => {

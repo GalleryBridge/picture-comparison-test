@@ -44,7 +44,9 @@ def start_api_server():
             port=8000,
             reload=True,
             log_level="info",
-            access_log=True
+            access_log=True,
+            timeout_keep_alive=300,  # 保持连接5分钟
+            timeout_graceful_shutdown=30  # 优雅关闭30秒
         )
     except KeyboardInterrupt:
         print("\n🛑 API服务已停止")

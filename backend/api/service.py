@@ -15,7 +15,7 @@ from pathlib import Path
 import json
 import shutil
 
-from core.comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonResult
+from core.comparison_engine import PDFComparisonEngine, ComparisonConfig, ComparisonResult, OutputFormat
 from visualization.pdf_highlighter import PDFHighlighter, HighlightConfig
 from visualization.diff_renderer import DiffRenderer, RenderConfig
 from visualization.report_generator import ReportGenerator, ReportConfig
@@ -128,9 +128,13 @@ class ComparisonService:
         from matching.tolerance import ToleranceManager
         
         if custom:
-            return ToleranceManager.create_custom_config(custom)
+            # 创建自定义配置
+            from matching.tolerance import ToleranceConfig
+            return ToleranceConfig(**custom)
         else:
-            return ToleranceManager.get_preset_config(preset)
+            # 获取预设配置
+            manager = ToleranceManager()
+            return manager.get_preset(preset)
     
     async def compare_files(self, request: ComparisonRequest) -> ComparisonResponse:
         """执行文件比对"""
@@ -165,7 +169,12 @@ class ComparisonService:
                 mode=request.mode,
                 similarity_method=request.similarity_method,
                 tolerance_config=tolerance_config,
-                output_formats=request.output_formats,
+                output_format=request.output_formats[0] if request.output_formats else OutputFormat.DICT,
+                enable_caching=True,
+                max_processing_time=300.0,  # 5分钟超时
+                enable_preprocessing=True,
+                enable_postprocessing=True,
+                parallel_processing=True,  # 启用并行处理
                 debug_mode=False
             )
             
@@ -207,9 +216,7 @@ class ComparisonService:
                     
                     if highlighter.highlight_differences(
                         result, 
-                        str(highlight_path),
-                        request.file_a_path,
-                        request.file_b_path
+                        str(highlight_path)
                     ):
                         output_files['highlighted_pdf'] = str(highlight_path)
                     
@@ -390,9 +397,7 @@ class ComparisonService:
             # 生成高亮PDF
             if highlighter.highlight_differences(
                 result,
-                str(output_path),
-                result.file_a_path,
-                result.file_b_path
+                str(output_path)
             ):
                 output_files['highlighted_pdf'] = str(output_path)
             
