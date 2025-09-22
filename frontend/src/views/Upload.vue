@@ -1,7 +1,10 @@
 <template>
   <div class="upload-container">
     <div class="upload-header">
-      <h1>PDF图纸上传分析</h1>
+      <div class="logo">
+        <el-icon><Document /></el-icon>
+        <span>PDF图纸尺寸分析系统</span>
+      </div>
       <p>上传您的PDF图纸文件，系统将自动识别其中的尺寸标注信息</p>
     </div>
 
@@ -95,14 +98,6 @@
                 重试
               </el-button>
               <el-button 
-                v-if="file.status === 'completed'" 
-                type="success" 
-                size="small"
-                @click="viewResult(file)"
-              >
-                查看结果
-              </el-button>
-              <el-button 
                 type="danger" 
                 size="small" 
                 @click="removeFile(file.id)"
@@ -131,6 +126,43 @@
             :percentage="uploadStore.uploadProgress" 
             :show-text="false"
           />
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 分析结果展示 -->
+    <div v-if="uploadStore.analysisResults.length > 0" class="results-section">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>分析结果</span>
+            <el-button type="text" @click="copyAllResults">复制全部</el-button>
+          </div>
+        </template>
+
+        <div class="results-list">
+          <div
+            v-for="(result, index) in uploadStore.analysisResults"
+            :key="result.fileId"
+            class="result-item"
+          >
+            <div class="result-header">
+              <div class="result-info">
+                <el-icon><Document /></el-icon>
+                <div>
+                  <div class="result-filename">{{ result.fileName }}</div>
+                  <div class="result-time">{{ formatTime(result.timestamp) }}</div>
+                </div>
+              </div>
+              <el-button type="text" size="small" @click="copyResult(result)">复制</el-button>
+            </div>
+            
+            <div class="result-content">
+              <el-scrollbar max-height="400px">
+                <pre class="json-content">{{ formatJSON(result.result) }}</pre>
+              </el-scrollbar>
+            </div>
+          </div>
         </div>
       </el-card>
     </div>
@@ -181,8 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { 
   UploadFilled, 
@@ -195,7 +226,6 @@ import {
 import { useUploadStore } from '@/stores/upload'
 import type { UploadFile } from '@/types'
 
-const router = useRouter()
 const uploadStore = useUploadStore()
 
 // 响应式数据
@@ -309,21 +339,98 @@ const retryUpload = async (file: UploadFile) => {
   ElMessage.info('重试功能开发中...')
 }
 
-const viewResult = (file: UploadFile) => {
-  // TODO: 跳转到结果详情页
-  router.push(`/results/${file.id}`)
+// 结果处理方法
+const formatTime = (timestamp: Date): string => {
+  return new Date(timestamp).toLocaleString('zh-CN')
 }
 
-// 不再需要状态轮询，因为现在是同步处理
+const extractUsefulData = (result: any): any => {
+  if (!result || !result.ai_analysis) {
+    return { message: '数据格式错误', data: result }
+  }
 
-// 生命周期
-onMounted(() => {
-  // 不需要轮询
-})
+  const analysis = result.ai_analysis
+  const usefulData = {
+    file_info: {
+      file_id: result.file_id,
+      pdf_info: {
+        page_count: result.pdf_info?.page_count,
+        title: result.pdf_info?.title
+      }
+    },
+    analysis_summary: {
+      total_pages: analysis.total_pages,
+      total_dimensions: analysis.total_dimensions || 0,
+      total_table_items: analysis.total_table_items || 0,
+      total_items_found: analysis.summary?.total_items_found || 0
+    },
+    page_results: []
+  }
 
-onUnmounted(() => {
-  // 不需要清理
-})
+  // 提取每页的有用信息
+  if (analysis.page_results) {
+    usefulData.page_results = analysis.page_results.map((page: any) => {
+      const pageData: any = {
+        page_number: page.page_number,
+        analysis_success: page.success
+      }
+
+      // 添加解析出的尺寸标注
+      if (page.parsed_dimensions && page.parsed_dimensions.length > 0) {
+        pageData.dimensions = page.parsed_dimensions.map((dim: any) => ({
+          value: dim.value,
+          unit: dim.unit,
+          tolerance: dim.tolerance,
+          dimension_type: dim.dimension_type,
+          prefix: dim.prefix,
+          description: dim.description,
+          confidence: dim.confidence
+        }))
+      }
+
+      // 添加表格项目
+      if (page.parsed_table_items && page.parsed_table_items.length > 0) {
+        pageData.table_items = page.parsed_table_items.map((item: any) => ({
+          item_name: item.item_name,
+          description: item.description,
+          tolerance_value: item.tolerance_value,
+          unit: item.unit,
+          row_number: item.row_number,
+          confidence: item.confidence
+        }))
+      }
+
+      return pageData
+    }).filter((page: any) => page.dimensions || page.table_items) // 只保留有数据的页面
+  }
+
+  return usefulData
+}
+
+const formatJSON = (obj: any): string => {
+  const usefulData = extractUsefulData(obj)
+  return JSON.stringify(usefulData, null, 2)
+}
+
+const copyResult = async (result: any) => {
+  try {
+    const usefulData = extractUsefulData(result.result)
+    await navigator.clipboard.writeText(JSON.stringify(usefulData, null, 2))
+    ElMessage.success('复制成功')
+  } catch (error) {
+    ElMessage.error('复制失败')
+  }
+}
+
+const copyAllResults = async () => {
+  try {
+    const allUsefulData = uploadStore.analysisResults.map(r => extractUsefulData(r.result))
+    await navigator.clipboard.writeText(JSON.stringify(allUsefulData, null, 2))
+    ElMessage.success('全部结果复制成功')
+  } catch (error) {
+    ElMessage.error('复制失败')
+  }
+}
 </script>
 
 <style scoped>
@@ -507,6 +614,87 @@ onUnmounted(() => {
   color: #666;
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* 头部logo样式 */
+.upload-header .logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.upload-header .logo .el-icon {
+  margin-right: 12px;
+  font-size: 32px;
+  color: #409EFF;
+}
+
+/* 结果展示区域样式 */
+.results-section {
+  margin-bottom: 30px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.result-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.result-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-info .el-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.result-filename {
+  font-weight: 600;
+  color: #333;
+}
+
+.result-time {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+
+.result-content {
+  background: #fff;
+}
+
+.json-content {
+  padding: 16px;
+  margin: 0;
+  background: #f8f9fa;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* 状态样式 */

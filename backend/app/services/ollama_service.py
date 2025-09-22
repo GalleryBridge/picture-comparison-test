@@ -108,9 +108,9 @@ class OllamaService:
     
     def _get_default_prompt(self) -> str:
         """
-        获取优化的尺寸识别提示词 - 确保JSON输出一致性
+        获取优化的尺寸识别提示词 - 支持表格和标注识别
         """
-        return """你是专业的工程图纸分析专家。请识别图像中的所有尺寸标注信息。
+        return """你是专业的工程图纸分析专家。请识别图像中的所有尺寸标注信息，包括表格中的公差项目。
 
 重要：请严格按照以下JSON格式输出，不要包含任何其他文字或解释！
 
@@ -128,11 +128,23 @@ class OllamaService:
             "description": "描述"
         }
     ],
+    "table_items": [
+        {
+            "item_name": "项目名称",
+            "description": "项目描述",
+            "tolerance_value": "公差数值",
+            "unit": "单位",
+            "row_number": 1,
+            "confidence": 0.9
+        }
+    ],
     "summary": {
         "total_dimensions": 0,
+        "total_table_items": 0,
         "dimension_types": [],
         "units_found": [],
         "has_tolerances": false,
+        "has_table": false,
         "scan_coverage": "完整"
     },
     "analysis_notes": "分析说明"
@@ -140,54 +152,91 @@ class OllamaService:
 ```
 
 识别要求：
-1. 扫描整个图像，从左到右、从上到下
-2. 识别所有数字+单位的组合（mm、cm、°、inch等）
-3. 注意公差标注（±符号）
-4. 识别前缀符号（Φ、R、C、M等）
-5. 包括线性、角度、直径、半径、倒角等所有类型
-6. 不要遗漏角落、边缘、重叠区域的小尺寸
-7. 对不确定的标注也要包含，标注低置信度
 
-dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer, position, roughness
+A. 图纸标注识别：
+1. 扫描整个图像，识别所有数字+单位的组合（mm、cm、°、inch等）
+2. 注意公差标注（±符号）
+3. 识别前缀符号（Φ、R、C、M等）
+4. 包括线性、角度、直径、半径、倒角等所有类型
+
+B. 表格信息识别：
+1. 识别表格结构，特别是检查清单类表格
+2. 提取左侧描述列的所有文本项目，如：
+   - 总长公差、总厚度公差、总长度公差
+   - base宽度公差、base长度公差、base厚度公差
+   - 角度公差类项目（FA角度、block角度、prism角度等）
+   - 位置公差项目（出光位置、焦点距离等）
+   - 其他工程参数（光口焦距、REC外径等）
+3. 关联右侧对应的数值和公差
+4. 按行序号记录每个项目
+
+C. 特别注意：
+- 中文工程术语的准确识别
+- 表格中的公差符号（±0.05、±0.03等）
+- 项目描述的完整性
+- 不要遗漏任何表格行
+
+dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer, position, roughness, tolerance_spec
 
 请只输出JSON，不要其他内容！"""
     
     def _get_enhanced_prompt(self) -> str:
         """
-        获取增强版提示词 - 用于复杂图纸的二次分析
+        获取增强版提示词 - 专门用于表格检查清单分析
         """
-        return """你是工程图纸分析专家。这是一张复杂的工程图纸，请进行深度分析。
+        return """你是专业的工程检查清单分析专家。请仔细识别图像中的表格内容，特别是左侧的描述项目。
 
-请特别注意以下区域的尺寸标注：
-- 图像边缘和角落的小标注
-- 线条交叉处的隐藏尺寸  
-- 淡色或低对比度的标注
-- 重叠或密集标注区域
-- 内部细节和特殊符号
+重点识别以下类型的表格项目：
 
-输出格式（只输出JSON）：
+**公差类项目（重点）：**
+- 总长公差、总厚度公差、总长度公差
+- base宽度公差、base长度公差、base厚度公差  
+- 角度公差（FA角度、block角度、prism角度、出光角度等）
+- 位置公差（出光位置、焦点距base底板、焦点距base侧壁等）
+- 贴装公差（治具保证贴装、非治具保证贴装、贴装角度等）
+
+**尺寸类项目：**
+- 外径、厚度、长度相关项目
+- REC外径公差、REC尾翼厚度公差
+- FA尾胶长度、REC尾胶长度
+- 光口焦距、铣边角度
+
+**通用公差：**
+- 其余未定义尺寸公差、其余未定义角度公差
+
+严格按照以下JSON格式输出：
 ```json
 {
-    "dimensions": [
+    "dimensions": [],
+    "table_items": [
         {
-            "value": "数字",
-            "unit": "单位",
-            "tolerance": "公差",
-            "dimension_type": "类型",
-            "prefix": "前缀",
-            "position": {"x": 0, "y": 0},
-            "confidence": 0.8,
-            "description": "详细描述"
+            "item_name": "总长公差",
+            "description": "产品总体长度的公差要求",
+            "tolerance_value": "±0.05",
+            "unit": "mm",
+            "row_number": 1,
+            "confidence": 0.9
         }
     ],
     "summary": {
         "total_dimensions": 0,
-        "scan_coverage": "深度扫描"
-    }
+        "total_table_items": 25,
+        "has_tolerances": true,
+        "has_table": true,
+        "scan_coverage": "表格完整扫描"
+    },
+    "analysis_notes": "检查清单表格分析完成"
 }
 ```
 
-要求：宁可多识别也不要遗漏，包含所有可能的尺寸标注！"""
+要求：
+1. 仔细扫描表格每一行的描述文字
+2. 准确提取中文工程术语
+3. 关联对应的数值公差（±0.05、±0.03等）
+4. 按行号顺序记录
+5. 不要遗漏任何表格行项目
+
+请只输出JSON，不要其他内容！"""
     
     async def batch_analyze_images(self, image_paths: List[str], prompt: str = None) -> List[Dict[str, Any]]:
         """
@@ -210,13 +259,14 @@ dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer,
         
         return results
     
-    def parse_dimensions_from_response(self, response_text: str) -> List[Dict[str, Any]]:
+    def parse_dimensions_from_response(self, response_text: str) -> Dict[str, Any]:
         """
-        从AI响应中解析尺寸信息 - 增强版
+        从AI响应中解析尺寸信息和表格信息 - 增强版
         """
         try:
             import re
             all_dimensions = []
+            all_table_items = []
             
             print(f"🔍 开始解析AI响应，长度: {len(response_text)}")
             
@@ -229,14 +279,16 @@ dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer,
                     print(f"🔄 解析第 {i+1} 个JSON代码块...")
                     data = json.loads(block)
                     dimensions = data.get("dimensions", [])
-                    print(f"✅ 成功解析出 {len(dimensions)} 个尺寸")
+                    table_items = data.get("table_items", [])
+                    print(f"✅ 成功解析出 {len(dimensions)} 个尺寸标注, {len(table_items)} 个表格项目")
                     all_dimensions.extend(dimensions)
+                    all_table_items.extend(table_items)
                 except json.JSONDecodeError as e:
                     print(f"❌ JSON解析失败: {str(e)}")
                     continue
             
             # 方法2: 尝试直接解析纯JSON（去除markdown标记）
-            if not all_dimensions:
+            if not all_dimensions and not all_table_items:
                 print("🔄 尝试直接JSON解析...")
                 # 清理响应文本
                 cleaned_text = response_text.strip()
@@ -248,23 +300,34 @@ dimension_type选项：linear, angular, diameter, radius, thread, hole, chamfer,
                     try:
                         data = json.loads(cleaned_text)
                         dimensions = data.get("dimensions", [])
-                        print(f"✅ 直接JSON解析成功，找到 {len(dimensions)} 个尺寸")
+                        table_items = data.get("table_items", [])
+                        print(f"✅ 直接JSON解析成功，找到 {len(dimensions)} 个尺寸标注, {len(table_items)} 个表格项目")
                         all_dimensions.extend(dimensions)
+                        all_table_items.extend(table_items)
                     except json.JSONDecodeError as e:
                         print(f"❌ 直接JSON解析失败: {str(e)}")
             
-            # 方法3: 增强的正则表达式回退解析
+            # 方法3: 增强的正则表达式回退解析（仅用于尺寸）
             if not all_dimensions:
-                print("🔄 使用增强正则表达式解析...")
+                print("🔄 使用增强正则表达式解析尺寸...")
                 all_dimensions = self._extract_dimensions_with_enhanced_regex(response_text)
                 print(f"📊 正则表达式解析找到 {len(all_dimensions)} 个尺寸")
             
-            print(f"🎉 总共解析出 {len(all_dimensions)} 个尺寸标注")
-            return all_dimensions
+            print(f"🎉 总共解析出 {len(all_dimensions)} 个尺寸标注, {len(all_table_items)} 个表格项目")
+            
+            return {
+                "dimensions": all_dimensions,
+                "table_items": all_table_items,
+                "total_items": len(all_dimensions) + len(all_table_items)
+            }
             
         except Exception as e:
-            print(f"❌ 解析尺寸信息失败: {str(e)}")
-            return []
+            print(f"❌ 解析信息失败: {str(e)}")
+            return {
+                "dimensions": [],
+                "table_items": [],
+                "total_items": 0
+            }
     
     def _extract_dimensions_with_enhanced_regex(self, text: str) -> List[Dict[str, Any]]:
         """

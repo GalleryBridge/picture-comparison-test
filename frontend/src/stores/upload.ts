@@ -7,6 +7,7 @@ export const useUploadStore = defineStore('upload', () => {
   // 状态
   const files = ref<UploadFile[]>([])
   const isUploading = ref(false)
+  const analysisResults = ref<any[]>([]) // 存储分析结果
 
   // 计算属性
   const uploadProgress = computed(() => {
@@ -70,6 +71,14 @@ export const useUploadStore = defineStore('upload', () => {
       // 处理完成
       updateFileStatus(uploadFile.id, 'completed', 100)
       
+      // 存储分析结果
+      analysisResults.value.push({
+        fileId: uploadFile.id,
+        fileName: file.name,
+        timestamp: new Date(),
+        result: response
+      })
+      
       return response.file_id
       
     } catch (error) {
@@ -91,6 +100,7 @@ export const useUploadStore = defineStore('upload', () => {
 
   const clearFiles = () => {
     files.value = []
+    analysisResults.value = []
   }
 
   const retryUpload = async (fileId: string, originalFile: File) => {
@@ -102,6 +112,7 @@ export const useUploadStore = defineStore('upload', () => {
     // 状态
     files,
     isUploading,
+    analysisResults,
     
     // 计算属性
     uploadProgress,

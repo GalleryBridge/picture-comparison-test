@@ -103,8 +103,8 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                     result = response.json()
                     print(f"✅ 第 {i+1} 页分析成功，响应长度: {len(result.get('response', ''))}")
                     
-                    # 解析尺寸信息
-                    dimensions = ollama_service.parse_dimensions_from_response(
+                    # 解析尺寸和表格信息
+                    parsed_data = ollama_service.parse_dimensions_from_response(
                         result.get("response", "")
                     )
                     
@@ -112,14 +112,16 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                         "success": True,
                         "response": result.get("response", ""),
                         "model": result.get("model", ""),
-                        "parsed_dimensions": dimensions,
+                        "parsed_dimensions": parsed_data.get("dimensions", []),
+                        "parsed_table_items": parsed_data.get("table_items", []),
                         "page_number": i + 1,
                         "image_path": image_path
                     })
             
             # 整理最终结果
             total_dimensions = sum(len(r.get("parsed_dimensions", [])) for r in results)
-            print(f"✅ AI分析完成，共找到 {total_dimensions} 个尺寸")
+            total_table_items = sum(len(r.get("parsed_table_items", [])) for r in results)
+            print(f"✅ AI分析完成，共找到 {total_dimensions} 个尺寸标注, {total_table_items} 个表格项目")
             
             print(f"🎉 AI分析完成！")
             
@@ -133,11 +135,14 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                 "ai_analysis": {
                     "total_pages": len(image_paths),
                     "total_dimensions": total_dimensions,
+                    "total_table_items": total_table_items,
                     "page_results": results,
                     "summary": {
                         "pages_analyzed": len(image_paths),
                         "successful_pages": sum(1 for r in results if r.get("success")),
-                        "total_dimensions_found": total_dimensions
+                        "total_dimensions_found": total_dimensions,
+                        "total_table_items_found": total_table_items,
+                        "total_items_found": total_dimensions + total_table_items
                     }
                 },
                 "status": "completed",
