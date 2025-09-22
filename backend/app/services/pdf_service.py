@@ -149,11 +149,11 @@ class PDFService:
             try:
                 import cv2
                 import numpy as np
-            except ImportError as e:
-                print(f"⚠️ OpenCV导入失败，使用基础图像处理: {str(e)}")
-                return self._basic_image_enhancement(image_path, output_path)
-            except AttributeError as e:
-                print(f"⚠️ NumPy兼容性问题，使用基础图像处理: {str(e)}")
+                # 测试基本功能确保库正常工作
+                _ = np.array([1, 2, 3])
+                _ = cv2.__version__
+            except (ImportError, AttributeError, Exception) as e:
+                print(f"⚠️ OpenCV/NumPy导入或初始化失败，使用基础图像处理: {str(e)}")
                 return self._basic_image_enhancement(image_path, output_path)
             
             print(f"🖼️ 开始增强工程图纸: {image_path}")

@@ -110,7 +110,6 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
                     
                     results.append({
                         "success": True,
-                        "response": result.get("response", ""),
                         "model": result.get("model", ""),
                         "parsed_dimensions": parsed_data.get("dimensions", []),
                         "parsed_table_items": parsed_data.get("table_items", []),

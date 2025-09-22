@@ -14,14 +14,13 @@ celery==5.3.4
 
 # PDF 处理
 PyMuPDF==1.23.8
-pdf2image==3.1.0
+pdf2image==1.17.0
 Pillow==10.1.0
 
 # 图像处理增强 - 修复NumPy兼容性
-numpy<2.0.0,>=1.21.0
-opencv-python==4.10.0.84
-opencv-contrib-python==4.10.0.84
-scikit-image==0.22.0
+numpy<2.0
+opencv-python==4.8.1.78
+scikit-image==0.21.0
 
 # AI 模型调用
 httpx==0.25.2
