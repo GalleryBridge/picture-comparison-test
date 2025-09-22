@@ -49,7 +49,7 @@ def process_pdf_task(file_id: str, pdf_path: str) -> Dict[str, Any]:
             # 检查模型可用性
             print(f"🔍 检查Ollama模型: {ollama_service.model}")
             import httpx
-            with httpx.Client(timeout=60) as client:
+            with httpx.Client(timeout=120) as client:
                 response = client.post(
                     f"{ollama_service.base_url}/api/show",
                     json={"name": ollama_service.model}
